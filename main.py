@@ -1,18 +1,17 @@
-from tkinter import Tk, Label
+import sys
+
+from PySide6.QtWidgets import QApplication
+
+from app.main_window import MainWindow
 
 
 def main():
-    root = Tk()
-    root.title("Sales OS")
-    root.geometry("1000x700")
+    app = QApplication(sys.argv)
 
-    Label(
-        root,
-        text="Sales OS\nПервая рабочая версия",
-        font=("Segoe UI", 20)
-    ).pack(expand=True)
+    window = MainWindow()
+    window.show()
 
-    root.mainloop()
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":
