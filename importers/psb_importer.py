@@ -1,48 +1,112 @@
-from pathlib import Path
-
 from openpyxl import load_workbook
 
 from models.object import Object
+from models.company import Company
 
 
 class PSBImporter:
 
-    def import_objects(self, file_path):
+    def import_objects(self, filename):
 
-        file_path = Path(file_path)
+        workbook = load_workbook(filename=filename)
 
-        workbook = load_workbook(file_path, data_only=True)
-
-        sheet = workbook["ПетроСтройБаза"]
+        sheet = workbook.active
 
         headers = {}
 
         for col in range(1, sheet.max_column + 1):
+
             value = sheet.cell(row=1, column=col).value
 
-            if value is not None:
+            if value:
+
                 headers[str(value).strip()] = col
 
-        if "Объект" not in headers:
-            raise Exception("Столбец 'Объект' не найден.")
-
-        object_column = headers["Объект"]
-
         objects = {}
-        
+
         for row in range(2, sheet.max_row + 1):
 
-            value = sheet.cell(row=row, column=object_column).value
+            object_name = self._cell(
+                sheet,
+                row,
+                headers,
+                "Объект"
+            )
 
-            if value is None:
+            if not object_name:
                 continue
 
-            name = str(value).strip()
+            if object_name not in objects:
 
-            if not name:
-                continue
+                obj = Object(
 
-            if name not in objects:
-                objects[name] = Object(name=name)
+                    name=object_name,
 
-        return sorted(objects.values(), key=lambda x: x.name)
+                    source="ПСБ"
+
+                )
+
+                objects[object_name] = {
+
+                    "object": obj,
+
+                    "companies": []
+
+                }
+
+            company = Company(
+
+                company_name=self._cell(
+                    sheet,
+                    row,
+                    headers,
+                    "Название компании-участника строительства"
+                ),
+
+                company_type=self._cell(
+                    sheet,
+                    row,
+                    headers,
+                    "Тип компании"
+                ),
+
+                contact=self._cell(
+                    sheet,
+                    row,
+                    headers,
+                    "Контакт компании"
+                ),
+
+                phone=self._cell(
+                    sheet,
+                    row,
+                    headers,
+                    "Тел. компании"
+                ),
+
+                email=self._cell(
+                    sheet,
+                    row,
+                    headers,
+                    "E-mail компании"
+                )
+
+            )
+
+            objects[object_name]["companies"].append(company)
+
+        return objects
+
+    def _cell(self, sheet, row, headers, header):
+
+        column = headers.get(header)
+
+        if column is None:
+            return ""
+
+        value = sheet.cell(row=row, column=column).value
+
+        if value is None:
+            return ""
+
+        return str(value).strip()

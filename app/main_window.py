@@ -12,6 +12,8 @@ from app.object_list import ObjectList
 from app.workspace import Workspace
 from database.database import Database
 from database.object_repository import ObjectRepository
+from database.company_repository import CompanyRepository
+from services.object_service import ObjectService
 from importers.psb_importer import PSBImporter
 
 
@@ -22,6 +24,8 @@ class MainWindow(QMainWindow):
 
         self.database = Database()
         self.repository = ObjectRepository(self.database)
+        self.company_repository = CompanyRepository(self.database)
+        self.object_service = ObjectService(self.database)
         self.importer = PSBImporter()
 
         self.setWindowTitle("Sales OS")
@@ -113,16 +117,33 @@ class MainWindow(QMainWindow):
 
         try:
 
-            objects = self.importer.import_objects(file_name)
+            imported = self.importer.import_objects(file_name)
 
-            self.repository.save_objects(objects)
+            objects = []
 
-            objects = self.repository.load_objects()
+            for item in imported.values():
 
-            self.object_list.load_objects(objects)
+                obj = item["object"]
+
+                obj = self.repository.save_object(obj)
+
+                objects.append(obj)
+
+                companies = item["companies"]
+
+                for company in companies:
+                    company.object_id = obj.id
+
+                self.company_repository.save_companies(companies)
+
+                # Компании подключим следующим шагом
+
+            self.object_list.load_objects(
+                self.repository.load_objects()
+            )
 
             self.statusBar().showMessage(
-                f"Всего объектов: {len(objects)}"
+                f"Импортировано объектов: {len(objects)}"
             )
 
         except Exception as e:
@@ -140,4 +161,6 @@ class MainWindow(QMainWindow):
         if obj is None:
             return
 
-        self.workspace.show_object(obj)
+        card = self.object_service.get_object_card(obj.id)
+
+        self.workspace.show_object(card)
