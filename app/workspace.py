@@ -3,25 +3,29 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 
 class Workspace(QWidget):
+
     def __init__(self):
         super().__init__()
 
-        layout = QVBoxLayout(self)
+        self.title = QLabel("Выберите объект")
 
-        title = QLabel("Sales OS")
-        title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
-            font-size:28px;
-            font-weight:bold;
+        self.title.setAlignment(Qt.AlignTop)
+
+        self.title.setStyleSheet("""
+            QLabel {
+                font-size: 26px;
+                font-weight: bold;
+                padding: 12px;
+            }
         """)
 
-        info = QLabel(
-            "Рабочая область\n\n"
-            "Следующий этап — импорт отчёта ПСБ."
-        )
-        info.setAlignment(Qt.AlignCenter)
+        layout = QVBoxLayout()
 
+        layout.addWidget(self.title)
         layout.addStretch()
-        layout.addWidget(title)
-        layout.addWidget(info)
-        layout.addStretch()
+
+        self.setLayout(layout)
+
+    def show_object(self, obj):
+
+        self.title.setText(obj.name)

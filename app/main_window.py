@@ -69,13 +69,18 @@ class MainWindow(QMainWindow):
         splitter = QSplitter(Qt.Horizontal)
 
         self.object_list = ObjectList()
+        self.workspace = Workspace()
 
         splitter.addWidget(self.object_list)
-        splitter.addWidget(Workspace())
+        splitter.addWidget(self.workspace)
 
         splitter.setSizes([320, 1280])
 
         self.setCentralWidget(splitter)
+
+        self.object_list.currentRowChanged.connect(
+            self.object_selected
+        )
 
     def import_psb(self):
 
@@ -106,3 +111,12 @@ class MainWindow(QMainWindow):
                 "Ошибка импорта",
                 str(e)
             )
+
+    def object_selected(self):
+
+        obj = self.object_list.get_current_object()
+
+        if obj is None:
+            return
+
+        self.workspace.show_object(obj)
