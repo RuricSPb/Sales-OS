@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
 
 from app.object_list import ObjectList
 from app.workspace import Workspace
+from database.database import Database
+from database.object_repository import ObjectRepository
 from importers.psb_importer import PSBImporter
 
 
@@ -18,6 +20,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        self.database = Database()
+        self.repository = ObjectRepository(self.database)
         self.importer = PSBImporter()
 
         self.setWindowTitle("Sales OS")
@@ -27,6 +31,8 @@ class MainWindow(QMainWindow):
         self._create_toolbar()
         self._create_statusbar()
         self._create_layout()
+
+        self.load_saved_objects()
 
     def _create_menu(self):
 
@@ -82,6 +88,17 @@ class MainWindow(QMainWindow):
             self.object_selected
         )
 
+    def load_saved_objects(self):
+
+        objects = self.repository.load_objects()
+
+        self.object_list.load_objects(objects)
+
+        if objects:
+            self.statusBar().showMessage(
+                f"Загружено объектов: {len(objects)}"
+            )
+
     def import_psb(self):
 
         file_name, _ = QFileDialog.getOpenFileName(
@@ -98,10 +115,14 @@ class MainWindow(QMainWindow):
 
             objects = self.importer.import_objects(file_name)
 
+            self.repository.save_objects(objects)
+
+            objects = self.repository.load_objects()
+
             self.object_list.load_objects(objects)
 
             self.statusBar().showMessage(
-                f"Импортировано объектов: {len(objects)}"
+                f"Всего объектов: {len(objects)}"
             )
 
         except Exception as e:
