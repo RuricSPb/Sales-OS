@@ -8,13 +8,16 @@ from PySide6.QtWidgets import (
     QToolBar,
 )
 
-from app.object_list import ObjectList
+from app.object_list_v2 import ObjectListV2
 from app.workspace import Workspace
+
 from database.database import Database
 from database.object_repository import ObjectRepository
 from database.company_repository import CompanyRepository
-from services.object_service import ObjectService
+
 from importers.psb_importer import PSBImporter
+
+from services.object_service import ObjectService
 
 
 class MainWindow(QMainWindow):
@@ -23,9 +26,12 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.database = Database()
+
         self.repository = ObjectRepository(self.database)
         self.company_repository = CompanyRepository(self.database)
+
         self.object_service = ObjectService(self.database)
+
         self.importer = PSBImporter()
 
         self.setWindowTitle("Sales OS")
@@ -38,6 +44,8 @@ class MainWindow(QMainWindow):
 
         self.load_saved_objects()
 
+    # ---------------------------------------------------------
+
     def _create_menu(self):
 
         menu = self.menuBar()
@@ -49,9 +57,12 @@ class MainWindow(QMainWindow):
         menu.addMenu("Настройки")
         menu.addMenu("Справка")
 
+    # ---------------------------------------------------------
+
     def _create_toolbar(self):
 
         toolbar = QToolBar("Основная панель")
+
         toolbar.setMovable(False)
 
         toolbar.addAction("Новый объект")
@@ -59,6 +70,7 @@ class MainWindow(QMainWindow):
         toolbar.addSeparator()
 
         action_import = toolbar.addAction("Импорт ПСБ")
+
         action_import.triggered.connect(self.import_psb)
 
         toolbar.addSeparator()
@@ -67,18 +79,24 @@ class MainWindow(QMainWindow):
 
         self.addToolBar(toolbar)
 
+    # ---------------------------------------------------------
+
     def _create_statusbar(self):
 
         status = QStatusBar()
+
         status.showMessage("Готов к работе")
 
         self.setStatusBar(status)
+
+    # ---------------------------------------------------------
 
     def _create_layout(self):
 
         splitter = QSplitter(Qt.Horizontal)
 
-        self.object_list = ObjectList()
+        self.object_list = ObjectListV2()
+
         self.workspace = Workspace()
 
         splitter.addWidget(self.object_list)
@@ -88,9 +106,11 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(splitter)
 
-        self.object_list.currentRowChanged.connect(
-            self.object_selected
+        self.object_list.selectionModel().currentChanged.connect(
+            lambda current, previous: self.object_selected()
         )
+
+    # ---------------------------------------------------------
 
     def load_saved_objects(self):
 
@@ -99,17 +119,27 @@ class MainWindow(QMainWindow):
         self.object_list.load_objects(objects)
 
         if objects:
+
             self.statusBar().showMessage(
+
                 f"Загружено объектов: {len(objects)}"
+
             )
+
+    # ---------------------------------------------------------
 
     def import_psb(self):
 
         file_name, _ = QFileDialog.getOpenFileName(
+
             self,
+
             "Выберите отчёт ПСБ",
+
             "",
+
             "Excel (*.xlsx)"
+
         )
 
         if not file_name:
@@ -119,15 +149,11 @@ class MainWindow(QMainWindow):
 
             imported = self.importer.import_objects(file_name)
 
-            objects = []
-
             for item in imported.values():
 
                 obj = item["object"]
 
                 obj = self.repository.save_object(obj)
-
-                objects.append(obj)
 
                 companies = item["companies"]
 
@@ -136,23 +162,27 @@ class MainWindow(QMainWindow):
 
                 self.company_repository.save_companies(companies)
 
-                # Компании подключим следующим шагом
-
-            self.object_list.load_objects(
-                self.repository.load_objects()
-            )
+            self.load_saved_objects()
 
             self.statusBar().showMessage(
-                f"Импортировано объектов: {len(objects)}"
+
+                f"Импорт завершён"
+
             )
 
         except Exception as e:
 
             QMessageBox.critical(
+
                 self,
+
                 "Ошибка импорта",
+
                 str(e)
+
             )
+
+    # ---------------------------------------------------------
 
     def object_selected(self):
 
