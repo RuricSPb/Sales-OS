@@ -16,6 +16,8 @@ class Database:
 
         self.create_tables()
 
+        self.update_database()
+
     def create_tables(self):
 
         self.cursor.execute("""
@@ -72,5 +74,40 @@ class Database:
             )
 
         """)
+
+        self.connection.commit()
+
+    def update_database(self):
+
+        columns = {
+
+            "psb_id": "TEXT",
+            "psb_link": "TEXT",
+            "description": "TEXT",
+            "region": "TEXT",
+            "district": "TEXT",
+            "object_type": "TEXT",
+            "work_type": "TEXT",
+            "stage": "TEXT",
+            "frame_type": "TEXT",
+            "construction_period": "TEXT",
+            "visit_date": "TEXT"
+
+        }
+
+        self.cursor.execute("PRAGMA table_info(objects)")
+
+        existing = [row["name"] for row in self.cursor.fetchall()]
+
+        for column, column_type in columns.items():
+
+            if column not in existing:
+
+                self.cursor.execute(
+                    f"""
+                    ALTER TABLE objects
+                    ADD COLUMN {column} {column_type}
+                    """
+                )
 
         self.connection.commit()
